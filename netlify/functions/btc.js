@@ -10,27 +10,31 @@ export default async (request) => {
   try {
     if (type === "price") {
       const res = await fetch(
-        "https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT",
-        { headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" } }
+        "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true"
       );
-      const text = await res.text();
-      // Devolver respuesta cruda para diagnóstico
-      return new Response(text, { headers });
+      const d = await res.json();
+      return new Response(JSON.stringify({
+        price: d.bitcoin.usd,
+        change24h: d.bitcoin.usd_24h_change,
+      }), { headers });
     }
 
     if (type === "klines") {
       const res = await fetch(
-        "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=3",
-        { headers: { "User-Agent": "Mozilla/5.0" } }
+        "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=210&interval=daily"
       );
-      const text = await res.text();
-      return new Response(text, { headers });
+      const d = await res.json();
+      const closes = d.prices.map(p => p[1]);
+      return new Response(JSON.stringify({ closes }), { headers });
     }
 
     if (type === "fng") {
       const res = await fetch("https://api.alternative.me/fng/?limit=1");
-      const text = await res.text();
-      return new Response(text, { headers });
+      const d = await res.json();
+      return new Response(JSON.stringify({
+        value: parseInt(d.data[0].value),
+        label: d.data[0].value_classification,
+      }), { headers });
     }
 
   } catch (e) {
