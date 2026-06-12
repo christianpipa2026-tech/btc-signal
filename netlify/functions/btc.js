@@ -7,10 +7,19 @@ export default async (request) => {
     "Content-Type": "application/json",
   };
 
+  const binanceHeaders = {
+    "User-Agent": "Mozilla/5.0",
+    "Accept": "application/json",
+  };
+
   try {
     if (type === "price") {
-      const res = await fetch("https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT");
-      const d = await res.json();
+      const res = await fetch(
+        "https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT",
+        { headers: binanceHeaders }
+      );
+      const text = await res.text();
+      const d = JSON.parse(text);
       return new Response(JSON.stringify({
         price: parseFloat(d.lastPrice),
         change24h: parseFloat(d.priceChangePercent),
@@ -20,8 +29,12 @@ export default async (request) => {
     }
 
     if (type === "klines") {
-      const res = await fetch("https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=210");
-      const klines = await res.json();
+      const res = await fetch(
+        "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=210",
+        { headers: binanceHeaders }
+      );
+      const text = await res.text();
+      const klines = JSON.parse(text);
       const closes = klines.map(k => parseFloat(k[4]));
       return new Response(JSON.stringify({ closes }), { headers });
     }
@@ -38,7 +51,7 @@ export default async (request) => {
     return new Response(JSON.stringify({ error: "tipo inválido" }), { status: 400, headers });
 
   } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), { status: 500, headers });
+    return new Response(JSON.stringify({ error: e.message, stack: e.stack }), { status: 500, headers });
   }
 };
 
