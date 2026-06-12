@@ -7,51 +7,34 @@ export default async (request) => {
     "Content-Type": "application/json",
   };
 
-  const binanceHeaders = {
-    "User-Agent": "Mozilla/5.0",
-    "Accept": "application/json",
-  };
-
   try {
     if (type === "price") {
       const res = await fetch(
         "https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT",
-        { headers: binanceHeaders }
+        { headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" } }
       );
       const text = await res.text();
-      const d = JSON.parse(text);
-      return new Response(JSON.stringify({
-        price: parseFloat(d.lastPrice),
-        change24h: parseFloat(d.priceChangePercent),
-        high24h: parseFloat(d.highPrice),
-        low24h: parseFloat(d.lowPrice),
-      }), { headers });
+      // Devolver respuesta cruda para diagnóstico
+      return new Response(text, { headers });
     }
 
     if (type === "klines") {
       const res = await fetch(
-        "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=210",
-        { headers: binanceHeaders }
+        "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=3",
+        { headers: { "User-Agent": "Mozilla/5.0" } }
       );
       const text = await res.text();
-      const klines = JSON.parse(text);
-      const closes = klines.map(k => parseFloat(k[4]));
-      return new Response(JSON.stringify({ closes }), { headers });
+      return new Response(text, { headers });
     }
 
     if (type === "fng") {
       const res = await fetch("https://api.alternative.me/fng/?limit=1");
-      const d = await res.json();
-      return new Response(JSON.stringify({
-        value: parseInt(d.data[0].value),
-        label: d.data[0].value_classification,
-      }), { headers });
+      const text = await res.text();
+      return new Response(text, { headers });
     }
 
-    return new Response(JSON.stringify({ error: "tipo inválido" }), { status: 400, headers });
-
   } catch (e) {
-    return new Response(JSON.stringify({ error: e.message, stack: e.stack }), { status: 500, headers });
+    return new Response(JSON.stringify({ error: e.message }), { status: 500, headers });
   }
 };
 
