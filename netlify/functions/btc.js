@@ -1,50 +1,59 @@
 const cache = {};
 
-async function cached(key, ttlMs, fetchFn) {
-  const now = Date.now();
-  if (cache[key] && (now - cache[key].ts) < ttlMs) {
-    return cache[key].data;
-  }
-  const data = await fetchFn();
-  cache[key] = { data, ts: now };
-  return data;
-}
-
-function sleep(ms) {
-  return new Promise(r => setTimeout(r, ms));
-}
-
 exports.handler = async function(event) {
-  const type = (event.queryStringParameters && event.queryStringParameters.type) || "price";
+  const params = event.queryStringParameters || {};
+  const type = params.type || "price";
 
-  const headers = {
+  const h = {
     "Access-Control-Allow-Origin": "*",
-    "Content-Type": "application/json",
+    "Content-Type": "application/json"
   };
 
   try {
-
     if (type === "price") {
-      const data = await cached("price", 10000, async () => {
-        const res = await fetch("https://api.kraken.com/0/public/Ticker?pair=XBTUSD");
-        if (!res.ok) throw new Error("Kraken HTTP " + res.status);
-        const d = await res.json();
-        if (d.error && d.error.length > 0) throw new Error("Kraken: " + d.error[0]);
-        const ticker = d.result.XXBTZUSD;
-        const price = parseFloat(ticker.c[0]);
-        const open = parseFloat(ticker.o);
-        const change24h = ((price - open) / open) * 100;
-        return { price, change24h: parseFloat(change24h.toFixed(4)) };
-      });
-      return { statusCode: 200, headers, body: JSON.stringify(data) };
+      const now = Date.now();
+      if (cache.price && (now - cache.price.ts) < 10000) {
+        return { statusCode: 200, headers: h, body: JSON.stringify(cache.price.data) };
+      }
+      const res = await fetch("https://api.kraken.com/0/public/Ticker?pair=XBTUSD");
+      const d = await res.json();
+      const ticker = d.result.XXBTZUSD;
+      const price = parseFloat(ticker.c[0]);
+      const open = parseFloat(ticker.o);
+      const change24h = ((price - open) / open) * 100;
+      const data = { price: price, change24h: parseFloat(change24h.toFixed(4)) };
+      cache.price = { data: data, ts: now };
+      return { statusCode: 200, headers: h, body: JSON.stringify(data) };
     }
 
     if (type === "klines") {
-      const data = await cached("klines", 300000, async () => {
-        let lastErr;
-        for (let i = 0; i < 3; i++) {
-          try {
-            if (i > 0) await sleep(2000 * i);
-            const res = await fetch(
-              "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=210&interval=daily",
-              { headers: { "Accept": "application/json" } }
+      const now = Date.now();
+      if (cache.klines && (now - cache.klines.ts) < 300000) {
+        return { statusCode: 200, headers: h, body: JSON.stringify(cache.klines.data) };
+      }
+      const res = await fetch("https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=210&interval=daily");
+      const d = await res.json();
+      const closes = d.prices.map(function(p) { return p[1]; });
+      const data = { closes: closes };
+      cache.klines = { data: data, ts: now };
+      return { statusCode: 200, headers: h, body: JSON.stringify(data) };
+    }
+
+    if (type === "fng") {
+      const now = Date.now();
+      if (cache.fng && (now - cache.fng.ts) < 3600000) {
+        return { statusCode: 200, headers: h, body: JSON.stringify(cache.fng.data) };
+      }
+      const res = await fetch("https://api.alternative.me/fng/?limit=1");
+      const d = await res.json();
+      const data = { value: parseInt(d.data[0].value), label: d.data[0].value_classification };
+      cache.fng = { data: data, ts: now };
+      return { statusCode: 200, headers: h, body: JSON.stringify(data) };
+    }
+
+    return { statusCode: 400, headers: h, body: JSON.stringify({ error: "tipo invalido" }) };
+
+  } catch(e) {
+    return { statusCode: 500, headers: h, body: JSON.stringify({ error: e.message }) };
+  }
+};
