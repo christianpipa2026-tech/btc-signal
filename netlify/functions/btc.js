@@ -10,8 +10,10 @@ export default async (request) => {
   try {
     if (type === "price") {
       const res = await fetch(
-        "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true"
+        "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true",
+        { headers: { "Accept": "application/json" } }
       );
+      if (!res.ok) throw new Error("CoinGecko price: " + res.status);
       const d = await res.json();
       return new Response(JSON.stringify({
         price: d.bitcoin.usd,
@@ -21,8 +23,10 @@ export default async (request) => {
 
     if (type === "klines") {
       const res = await fetch(
-        "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=210&interval=daily"
+        "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=210&interval=daily",
+        { headers: { "Accept": "application/json" } }
       );
+      if (!res.ok) throw new Error("CoinGecko klines: " + res.status);
       const d = await res.json();
       const closes = d.prices.map(p => p[1]);
       return new Response(JSON.stringify({ closes }), { headers });
@@ -30,12 +34,15 @@ export default async (request) => {
 
     if (type === "fng") {
       const res = await fetch("https://api.alternative.me/fng/?limit=1");
+      if (!res.ok) throw new Error("FNG: " + res.status);
       const d = await res.json();
       return new Response(JSON.stringify({
         value: parseInt(d.data[0].value),
         label: d.data[0].value_classification,
       }), { headers });
     }
+
+    return new Response(JSON.stringify({ error: "tipo invalido" }), { status: 400, headers });
 
   } catch (e) {
     return new Response(JSON.stringify({ error: e.message }), { status: 500, headers });
