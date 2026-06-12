@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BTC Signal">
+<meta name="description" content="BTC Signal — Señales de inversión en Bitcoin con indicadores técnicos profesionales. Gratis.">
+<title>BTC Signal — Tu guía de inversión</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0a0f; --bg2:#111118; --bg3:#1a1a24; --bg4:#22222f;
+  --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.13);
+  --text:#f0f0f8; --text2:#9090a8; --text3:#5a5a70;
+  --green:#00e676; --green-bg:rgba(0,230,118,0.1); --green-border:rgba(0,230,118,0.25);
+  --red:#ff4d6d; --red-bg:rgba(255,77,109,0.1); --red-border:rgba(255,77,109,0.25);
+  --yellow:#ffd60a; --yellow-bg:rgba(255,214,10,0.1); --yellow-border:rgba(255,214,10,0.25);
+  --blue:#4facfe; --blue-bg:rgba(79,172,254,0.1); --blue-border:rgba(79,172,254,0.25);
+  --orange:#ff9a3c;
+  --font:'Inter',sans-serif; --font-d:'Space Grotesk',sans-serif;
+  --r:12px; --rl:16px; --rxl:20px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;overflow-x:hidden}
+
+/* NAV */
+.nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px 8px;cursor:pointer;border:none;background:none;color:var(--text3);font-size:10px;font-family:var(--font);gap:4px;transition:color 0.2s}
+.nb.active{color:var(--yellow)}
+.nb svg{width:22px;height:22px}
+
+/* TOPBAR */
+.topbar{position:fixed;top:0;left:0;right:0;background:var(--bg);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;z-index:99}
+.app-title{font-family:var(--font-d);font-size:17px;font-weight:600;color:var(--text)}
+.app-title span{color:var(--yellow)}
+.live-pill{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:500}
+.live-pill.on{color:var(--green)}
+.live-pill.off{color:var(--text3)}
+.live-dot{width:7px;height:7px;border-radius:50%}
+.live-pill.on .live-dot{background:var(--green);animation:pulse 1.5s infinite}
+.live-pill.off .live-dot{background:var(--text3)}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.8)}}
+
+/* PAGES */
+.page{display:none;padding:70px 16px 90px;min-height:100vh}
+.page.active{display:block}
+
+/* LOADING */
+.loading-overlay{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;gap:16px}
+.loading-overlay.hidden{display:none}
+.spinner{width:36px;height:36px;border:3px solid var(--bg3);border-top:3px solid var(--yellow);border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:14px;color:var(--text2)}
+.loading-sub{font-size:12px;color:var(--text3)}
+
+/* CARDS */
+.alert-card{border-radius:var(--rl);padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;font-size:13px;line-height:1.45}
+.alert-card.off{background:var(--bg3);border:1px solid var(--border);color:var(--text2)}
+.alert-card.on{background:var(--green-bg);border:1px solid var(--green-border);color:var(--green);animation:glow 2s infinite}
+@keyframes glow{0%,100%{box-shadow:0 0 0 rgba(0,230,118,0)}50%{box-shadow:0 0 18px rgba(0,230,118,0.18)}}
+.alert-icon{font-size:22px;flex-shrink:0}
+
+.signal-box{border-radius:var(--rxl);padding:20px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.signal-box.wait{background:var(--yellow-bg);border:1px solid var(--yellow-border)}
+.signal-box.buy{background:var(--green-bg);border:1px solid var(--green-border)}
+.signal-box.sell{background:var(--red-bg);border:1px solid var(--red-border)}
+.sig-lbl{font-size:11px;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.sig-val{font-family:var(--font-d);font-size:32px;font-weight:700;line-height:1;margin-bottom:6px}
+.wait .sig-val{color:var(--yellow)} .buy .sig-val{color:var(--green)} .sell .sig-val{color:var(--red)}
+.sig-sub{font-size:12px;color:var(--text2)}
+.conf{text-align:right}
+.conf-num{font-family:var(--font-d);font-size:38px;font-weight:700;line-height:1}
+.wait .conf-num{color:var(--yellow)} .buy .conf-num{color:var(--green)} .sell .conf-num{color:var(--red)}
+.conf-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.mc{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px}
+.mc .l{font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px}
+.mc .v{font-family:var(--font-d);font-size:19px;font-weight:600;color:var(--text);margin-bottom:2px;word-break:break-all}
+.mc .s{font-size:11px}
+.up{color:var(--green)} .dn{color:var(--red)} .warn{color:var(--yellow)} .muted{color:var(--text2)}
+
+.sec-title{font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;font-weight:600}
+
+.ind{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px}
+.ind-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.ind-name{font-size:12px;color:var(--text2)}
+.ind-val{font-size:16px;font-weight:600;font-family:var(--font-d)}
+.prog-bg{height:4px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden;margin-bottom:5px}
+.prog-fill{height:100%;border-radius:2px;transition:width .5s}
+.ind-st{font-size:11px}
+
+.chart-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rl);padding:14px;margin-bottom:14px}
+.chart-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.chart-ttl{font-size:13px;font-weight:500;color:var(--text)}
+.chart-leg{display:flex;gap:12px}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text3)}
+.leg-dot{width:10px;height:3px;border-radius:2px}
+
+.reasons-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rl);padding:14px;margin-bottom:14px}
+.reason-row{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--text2);line-height:1.4}
+.reason-row:last-child{border-bottom:none}
+
+.scenario-card{background:linear-gradient(135deg,rgba(79,172,254,.06),rgba(0,230,118,.04));border:1px solid var(--blue-border);border-radius:var(--rl);padding:14px;margin-bottom:14px}
+.scenario-title{font-size:13px;font-weight:600;color:var(--blue);margin-bottom:10px}
+.sc-row{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--text2);margin-bottom:7px;line-height:1.4}
+.sc-row:last-child{margin-bottom:0}
+.sc-arr{color:var(--blue);flex-shrink:0}
+
+.update-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.update-time{font-size:11px;color:var(--text3)}
+.refresh-btn{font-size:12px;color:var(--yellow);background:var(--yellow-bg);border:1px solid var(--yellow-border);border-radius:8px;padding:5px 12px;cursor:pointer;font-family:var(--font);font-weight:500}
+.refresh-btn:disabled{opacity:.5;cursor:not-allowed}
+
+.error-card{background:var(--red-bg);border:1px solid var(--red-border);border-radius:var(--r);padding:14px 16px;font-size:13px;color:var(--red);margin-bottom:14px;display:none}
+
+/* ALERTS PAGE */
+.alerts-hero{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rxl);padding:20px;margin-bottom:16px;text-align:center}
+.ah-icon{font-size:40px;margin-bottom:10px}
+.ah-title{font-family:var(--font-d);font-size:18px;font-weight:600;margin-bottom:6px}
+.ah-sub{font-size:13px;color:var(--text2);line-height:1.5}
+.atc{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rl);padding:16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.atc-l{flex:1}
+.atc-title{font-size:14px;font-weight:500;color:var(--text);margin-bottom:3px}
+.atc-sub{font-size:12px;color:var(--text2)}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:var(--bg4);border-radius:24px;cursor:pointer;transition:.3s;border:1px solid var(--border2)}
+.slider:before{content:'';position:absolute;width:18px;height:18px;left:2px;top:2px;background:var(--text3);border-radius:50%;transition:.3s}
+input:checked+.slider{background:var(--yellow-bg);border-color:var(--yellow)}
+input:checked+.slider:before{transform:translateX(20px);background:var(--yellow)}
+.test-btn{width:100%;padding:14px;background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--r);color:var(--blue);font-size:14px;font-weight:600;font-family:var(--font);cursor:pointer;margin-top:8px}
+.alert-log{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rl);padding:14px;margin-top:16px}
+.alert-log-title{font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.log-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+.log-item:last-child{border-bottom:none}
+.log-time{color:var(--text3);white-space:nowrap;flex-shrink:0}
+.log-msg{color:var(--text2);line-height:1.4;flex:1}
+.log-tag{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;margin-right:4px}
+.tag-wait{background:var(--yellow-bg);color:var(--yellow)}
+.tag-buy{background:var(--green-bg);color:var(--green)}
+.tag-sell{background:var(--red-bg);color:var(--red)}
+
+/* GUIDE PAGE */
+.guide-hero{background:linear-gradient(135deg,var(--bg3),var(--bg2));border:1px solid var(--border);border-radius:var(--rxl);padding:20px;margin-bottom:16px}
+.gh-label{font-size:11px;color:var(--yellow);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-weight:600}
+.gh-title{font-family:var(--font-d);font-size:22px;font-weight:700;color:var(--text);line-height:1.2;margin-bottom:8px}
+.gh-sub{font-size:13px;color:var(--text2);line-height:1.6}
+.guide-sec{margin-bottom:20px}
+.guide-sec-title{font-family:var(--font-d);font-size:16px;font-weight:600;color:var(--text);margin-bottom:10px}
+.guide-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:8px}
+.gc-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:5px}
+.gc-text{font-size:12px;color:var(--text2);line-height:1.6}
+.gtag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600;margin-bottom:6px}
+.tag-basic{background:var(--blue-bg);color:var(--blue)}
+.tag-key{background:var(--yellow-bg);color:var(--yellow)}
+.tag-warn{background:var(--red-bg);color:var(--red)}
+.rule-list{list-style:none}
+.rule-list li{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--text2);line-height:1.5;padding:6px 0;border-bottom:1px solid var(--border)}
+.rule-list li:last-child{border-bottom:none}
+.rule-num{font-family:var(--font-d);font-size:14px;font-weight:700;color:var(--yellow);flex-shrink:0;min-width:20px}
+.gloss-item{padding:10px 0;border-bottom:1px solid var(--border)}
+.gloss-item:last-child{border-bottom:none}
+.gloss-term{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
+.gloss-def{font-size:12px;color:var(--text2);line-height:1.5}
+.disclaimer-box{background:var(--red-bg);border:1px solid var(--red-border);border-radius:var(--r);padding:14px;margin-bottom:16px}
+.disclaimer-box p{font-size:12px;color:var(--text2);line-height:1.6}
+
+/* TOAST */
+.toast{position:fixed;top:70px;left:50%;transform:translateX(-50%) translateY(-10px);background:var(--bg4);border:1px solid var(--border2);border-radius:var(--r);padding:10px 16px;font-size:13px;color:var(--text);z-index:300;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;max-width:90vw}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text">Conectando con Binance...</div>
+  <div class="loading-sub">Obteniendo precio real de BTC</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="topbar">
+  <div class="app-title">BTC <span>Signal</span></div>
+  <div class="live-pill off" id="livePill">
+    <div class="live-dot"></div>
+    <span id="liveText">Conectando...</span>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="update-row">
+    <span class="update-time" id="updateTime">Cargando...</span>
+    <button class="refresh-btn" id="refreshBtn" onclick="loadAll()">↻ Actualizar</button>
+  </div>
+
+  <div class="error-card" id="errorCard">⚠️ <span id="errorMsg"></span></div>
+
+  <div class="alert-card off" id="alertZone">
+    <div class="alert-icon" id="alertIcon">🔕</div>
+    <div id="alertText">Cargando zona de alerta...</div>
+  </div>
+
+  <div class="signal-box wait" id="signalBox">
+    <div>
+      <div class="sig-lbl">Señal principal</div>
+      <div class="sig-val" id="sigVal">—</div>
+      <div class="sig-sub" id="sigSub">Cargando...</div>
+    </div>
+    <div class="conf">
+      <div class="conf-num" id="confNum">—</div>
+      <div class="conf-lbl">confianza</div>
+    </div>
+  </div>
+
+  <div class="metrics">
+    <div class="mc">
+      <div class="l">Precio BTC</div>
+      <div class="v" id="mPrice">—</div>
+      <div class="s" id="mChange">—</div>
+    </div>
+    <div class="mc">
+      <div class="l">MM200 días</div>
+      <div class="v" id="mMa">—</div>
+      <div class="s" id="mMaRel">—</div>
+    </div>
+    <div class="mc">
+      <div class="l">Miedo / Codicia</div>
+      <div class="v" id="mFng">—</div>
+      <div class="s warn" id="mFngLabel">—</div>
+    </div>
+    <div class="mc">
+      <div class="l">Caída desde ATH</div>
+      <div class="v" id="mAth">—</div>
+      <div class="s muted">ATH: $126,198</div>
+    </div>
+  </div>
+
+  <div class="sec-title">Indicadores técnicos</div>
+
+  <div class="ind">
+    <div class="ind-hd"><span class="ind-name">RSI (14 días)</span><span class="ind-val" id="rsiVal">—</span></div>
+    <div class="prog-bg"><div class="prog-fill" id="rsiBar" style="width:50%;background:var(--yellow)"></div></div>
+    <div class="ind-st" id="rsiSt">—</div>
+  </div>
+
+  <div class="ind">
+    <div class="ind-hd"><span class="ind-name">MACD</span><span class="ind-val" id="macdVal">—</span></div>
+    <div class="prog-bg"><div class="prog-fill" id="macdBar" style="width:50%;background:var(--yellow)"></div></div>
+    <div class="ind-st" id="macdSt">—</div>
+  </div>
+
+  <div class="ind">
+    <div class="ind-hd"><span class="ind-name">BTC vs MM200</span><span class="ind-val" id="maVal">—</span></div>
+    <div class="prog-bg"><div class="prog-fill" id="maBar" style="width:50%;background:var(--yellow)"></div></div>
+    <div class="ind-st" id="maSt">—</div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-hd">
+      <span class="chart-ttl">Precio vs MM200 — 7 días</span>
+      <div class="chart-leg">
+        <div class="leg-item"><div class="leg-dot" style="background:#4facfe"></div>BTC</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#ff9a3c"></div>MM200</div>
+      </div>
+    </div>
+    <div style="position:relative;width:100%;height:150px">
+      <canvas id="priceChart" role="img" aria-label="Precio BTC vs MM200 últimos 7 días"></canvas>
+    </div>
+  </div>
+
+  <div class="reasons-card" id="reasonsCard">
+    <div class="sec-title" style="margin-bottom:8px">Análisis detallado</div>
+    <div id="reasonsList"><div class="reason-row">Cargando análisis...</div></div>
+  </div>
+
+  <div class="scenario-card">
+    <div class="scenario-title">🎯 ¿Cuándo actuar?</div>
+    <div class="sc-row"><span class="sc-arr">→</span><span>BTC cae a <strong style="color:var(--text)">$50K–$55K</strong> + RSI bajo 30 + miedo extremo = <strong style="color:var(--green)">COMPRAR FUERTE</strong></span></div>
+    <div class="sc-row"><span class="sc-arr">→</span><span>BTC supera MM200 con MACD positivo y RSI subiendo = <strong style="color:var(--green)">COMPRAR moderado</strong></span></div>
+    <div class="sc-row"><span class="sc-arr">→</span><span>RSI sobre 70 + codicia extrema + precio 30%+ sobre MM200 = <strong style="color:var(--red)">VENDER</strong></span></div>
+  </div>
+</div>
+
+<!-- ALERTS -->
+<div class="page" id="page-alerts">
+  <div class="alerts-hero">
+    <div class="ah-icon">🔔</div>
+    <div class="ah-title">Alertas inteligentes</div>
+    <div class="ah-sub">Activá las alertas. Cuando se cumple una condición, tu celular suena.</div>
+  </div>
+
+  <div class="sec-title">Alertas de precio</div>
+  <div class="atc"><div class="atc-l"><div class="atc-title">⚡ Zona objetivo $50K–$55K</div><div class="atc-sub">Suena cuando BTC entre en tu zona de compra</div></div><label class="toggle"><input type="checkbox" id="alert1" checked onchange="saveAlerts()"><span class="slider"></span></label></div>
+  <div class="atc"><div class="atc-l"><div class="atc-title">📈 Señal COMPRAR activada</div><div class="atc-sub">Cuando múltiples indicadores se alinean al alza</div></div><label class="toggle"><input type="checkbox" id="alert2" checked onchange="saveAlerts()"><span class="slider"></span></label></div>
+  <div class="atc"><div class="atc-l"><div class="atc-title">📉 Señal VENDER activada</div><div class="atc-sub">Cuando el mercado entra en sobrecompra peligrosa</div></div><label class="toggle"><input type="checkbox" id="alert3" checked onchange="saveAlerts()"><span class="slider"></span></label></div>
+  <div class="atc"><div class="atc-l"><div class="atc-title">😱 Miedo extremo (bajo 15)</div><div class="atc-sub">Históricamente el mejor momento para acumular</div></div><label class="toggle"><input type="checkbox" id="alert4" checked onchange="saveAlerts()"><span class="slider"></span></label></div>
+  <button class="test-btn" onclick="testAlert()">🔊 Probar sonido de alerta</button>
+
+  <div class="alert-log">
+    <div class="alert-log-title">Historial de hoy</div>
+    <div id="alertLogList"><div class="log-item"><span class="log-time">—</span><span class="log-msg">Las alertas aparecerán aquí</span></div></div>
+  </div>
+</div>
+
+<!-- GUIDE -->
+<div class="page" id="page-guide">
+  <div class="guide-hero">
+    <div class="gh-label">📚 Guía para principiantes</div>
+    <div class="gh-title">Invertir en Bitcoin con cabeza</div>
+    <div class="gh-sub">Todo lo que necesitás saber antes de poner un solo peso.</div>
+  </div>
+  <div class="disclaimer-box"><p><strong style="color:var(--red)">⚠️ Aviso importante:</strong> Invertir en Bitcoin implica riesgo real de perder dinero. Esta app te da herramientas para tomar mejores decisiones, pero no garantiza ganancias. Nunca inviertas dinero que no podés permitirte perder.</p></div>
+
+  <div class="guide-sec">
+    <div class="guide-sec-title">🧠 ¿Qué es Bitcoin?</div>
+    <div class="guide-card"><div class="gtag tag-basic">Básico</div><div class="gc-title">Dinero digital sin banco</div><div class="gc-text">Bitcoin es una moneda digital que no controla ningún gobierno ni banco. Existe desde 2009 y hay un máximo de 21 millones de bitcoins. Esa escasez limitada es parte central de su valor.</div></div>
+    <div class="guide-card"><div class="gtag tag-basic">Básico</div><div class="gc-title">¿Por qué sube y baja tanto?</div><div class="gc-text">Es un mercado relativamente chico comparado con bolsas tradicionales. Las noticias, decisiones institucionales y el miedo/codicia del mercado lo mueven mucho. Es normal ver caídas del 30–50% y recuperaciones del 100–200% en el mismo ciclo.</div></div>
+  </div>
+
+  <div class="guide-sec">
+    <div class="guide-sec-title">📊 Qué mide esta app</div>
+    <div class="guide-card"><div class="gtag tag-key">Clave</div><div class="gc-title">MM200 — Media Móvil 200 días</div><div class="gc-text">El precio promedio de los últimos 200 días. Si el precio actual está <strong style="color:var(--green)">sobre ella</strong> = tendencia positiva. Si está <strong style="color:var(--red)">bajo ella</strong> = zona de posible acumulación. Es el indicador más respetado por traders profesionales a largo plazo.</div></div>
+    <div class="guide-card"><div class="gtag tag-key">Clave</div><div class="gc-title">RSI — Índice de Fuerza Relativa</div><div class="gc-text">Va de 0 a 100. <strong style="color:var(--green)">Bajo 30</strong> = mercado cayó demasiado rápido, suele rebotar. <strong style="color:var(--red)">Sobre 70</strong> = subió demasiado rápido, puede corregir. Es el mejor indicador de momentum a corto plazo.</div></div>
+    <div class="guide-card"><div class="gtag tag-basic">Básico</div><div class="gc-title">Índice Miedo / Codicia</div><div class="gc-text">Mide el estado emocional del mercado de 0 a 100. Warren Buffett dijo: <em style="color:var(--text)">"Sé codicioso cuando otros tienen miedo."</em> Bajo 20 históricamente marcó buenos momentos de entrada. Es un indicador de sentimiento, no de precio.</div></div>
+    <div class="guide-card"><div class="gtag tag-basic">Básico</div><div class="gc-title">MACD</div><div class="gc-text">Mide si el precio tiene fuerza hacia arriba o abajo ahora mismo. Positivo = impulso alcista. Negativo = presión bajista. No predice precio, confirma dirección del movimiento actual.</div></div>
+  </div>
+
+  <div class="guide-sec">
+    <div class="guide-sec-title">💡 Reglas de oro</div>
+    <div class="guide-card"><ul class="rule-list">
+      <li><span class="rule-num">1</span><span>Nunca inviertas más del 5–10% de tus ahorros en cripto. Es un activo de alto riesgo.</span></li>
+      <li><span class="rule-num">2</span><span>No mires el precio cada hora. Te estresa. Mirá la señal una vez por día.</span></li>
+      <li><span class="rule-num">3</span><span>La estrategia más probada: comprar en partes cuando hay miedo extremo. No "todo o nada".</span></li>
+      <li><span class="rule-num">4</span><span>Definí antes de comprar cuándo vas a vender. Ej: "vendo si sube 50%" o "vendo si cae 20%".</span></li>
+      <li><span class="rule-num">5</span><span>No sigas consejos de desconocidos en redes sociales. Usá indicadores, no rumores.</span></li>
+      <li><span class="rule-num">6</span><span>Bitcoin tardó años en recuperarse de algunas caídas. Invertí solo si podés esperar.</span></li>
+    </ul></div>
+  </div>
+
+  <div class="guide-sec">
+    <div class="guide-sec-title">📖 Glosario rápido</div>
+    <div class="guide-card">
+      <div class="gloss-item"><div class="gloss-term">ATH (All Time High)</div><div class="gloss-def">El precio máximo histórico de Bitcoin. Alcanzó $126,198 en octubre 2025.</div></div>
+      <div class="gloss-item"><div class="gloss-term">Halving</div><div class="gloss-def">Cada ~4 años la producción de nuevos bitcoins se reduce a la mitad. Históricamente precede ciclos alcistas.</div></div>
+      <div class="gloss-item"><div class="gloss-term">ETF de Bitcoin</div><div class="gloss-def">Fondos institucionales que compran Bitcoin. Sus entradas y salidas mueven el precio significativamente.</div></div>
+      <div class="gloss-item"><div class="gloss-term">DCA (Dollar Cost Averaging)</div><div class="gloss-def">Invertir una cantidad fija cada semana o mes sin importar el precio. Reduce el riesgo de entrar en el peor momento.</div></div>
+      <div class="gloss-item"><div class="gloss-term">Ballenas (Whales)</div><div class="gloss-def">Inversores con miles de bitcoins. Sus movimientos pueden mover el mercado entero.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <button class="nb active" onclick="showPage('dashboard',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    Dashboard
+  </button>
+  <button class="nb" onclick="showPage('alerts',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    Alertas
+  </button>
+  <button class="nb" onclick="showPage('guide',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+    Guía
+  </button>
+</nav>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+'use strict';
+
+// ── HELPERS ──
+const $ = id => document.getElementById(id);
+function showToast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+function showError(msg) {
+  $('errorCard').style.display = 'block';
+  $('errorMsg').textContent = msg;
+}
+function hideError() { $('errorCard').style.display = 'none'; }
+
+// ── NAVIGATION ──
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
+  $('page-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── PRICE FORMAT ──
+function fmtPrice(n) {
+  return '$' + parseFloat(n).toLocaleString('es-AR', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+// ── INDICATORS ──
+function calcRSI(closes, period = 14) {
+  if (closes.length < period + 1) return 50;
+  let g = 0, l = 0;
+  for (let i = closes.length - period; i < closes.length; i++) {
+    const d = closes[i] - closes[i-1];
+    if (d > 0) g += d; else l -= d;
+  }
+  const ag = g/period, al = l/period;
+  if (al === 0) return 100;
+  return parseFloat((100 - 100/(1 + ag/al)).toFixed(1));
+}
+
+function calcMACD(closes) {
+  function ema(arr, n) { const k=2/(n+1); let e=arr[0]; for(let i=1;i<arr.length;i++) e=arr[i]*k+e*(1-k); return e; }
+  if (closes.length < 26) return { bullish: true };
+  return { bullish: ema(closes.slice(-12),12) > ema(closes.slice(-26),26) };
+}
+
+function calcMA200(closes) {
+  const sl = closes.slice(-200);
+  return sl.reduce((a,b) => a+b, 0) / sl.length;
+}
+
+function computeSignal(price, ma200, rsi, macdBullish, fearGreed) {
+  let score = 0;
+  const pct = (price - ma200) / ma200 * 100;
+  if (price >= 50000 && price <= 55000) score += 15;
+  if (pct < -15) score += 25; else if (pct < -5) score += 15; else if (pct < 5) score += 3; else if (pct > 40) score -= 22; else if (pct > 20) score -= 12;
+  if (rsi < 25) score += 25; else if (rsi < 35) score += 12; else if (rsi < 45) score += 4; else if (rsi > 75) score -= 22; else if (rsi > 65) score -= 12; else if (rsi > 55) score -= 4;
+  if (fearGreed < 15) score += 10; else if (fearGreed < 30) score += 5; else if (fearGreed > 80) score -= 12; else if (fearGreed > 65) score -= 6;
+  if (macdBullish) score += 7; else score -= 7;
+  const conf = Math.min(92, Math.max(35, 50 + score));
+  let signal, reason;
+  if (score >= 30)       { signal='COMPRAR'; reason = rsi<35 ? 'RSI en sobreventa + indicadores alineados' : 'Múltiples indicadores alcistas confirmados'; }
+  else if (score <= -18) { signal='VENDER';  reason = rsi>65 ? 'Sobrecompra extrema — zona de riesgo' : 'Señales bajistas dominantes'; }
+  else                   { signal='ESPERAR'; reason = macdBullish ? 'Momentum positivo pero sin confirmación total' : 'Indicadores mixtos — aguardar señal más clara'; }
+  return { signal, reason, conf };
+}
+
+// ── CHART ──
+let chart = null;
+function initChart(prices7d, ma200) {
+  const canvas = $('priceChart');
+  if (!canvas) return;
+  if (chart) { chart.destroy(); chart = null; }
+  const labels = ['Día-6','Día-5','Día-4','Día-3','Día-2','Día-1','Hoy'];
+  const ma200Line = new Array(7).fill(Math.round(ma200));
+  chart = new Chart(canvas.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label:'BTC', data:prices7d, borderColor:'#4facfe', backgroundColor:'rgba(79,172,254,0.07)', borderWidth:2.5, pointRadius:3, pointBackgroundColor:'#4facfe', pointBorderColor:'#0a0a0f', pointBorderWidth:1.5, tension:0.4, fill:true },
+        { label:'MM200', data:ma200Line, borderColor:'#ff9a3c', borderWidth:1.5, borderDash:[6,4], pointRadius:0 }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      layout:{ padding:{ top:8, right:4 } },
+      plugins:{ legend:{ display:false }, tooltip:{
+        backgroundColor:'#1a1a24', titleColor:'#9090a8', bodyColor:'#f0f0f8',
+        borderColor:'rgba(255,255,255,0.1)', borderWidth:1,
+        callbacks:{ label: ctx => ' ' + fmtPrice(ctx.parsed.y) }
+      }},
+      scales:{
+        x:{ ticks:{ font:{size:10}, color:'#5a5a70', maxRotation:0 }, grid:{ display:false }, border:{ display:false } },
+        y:{ ticks:{ callback:v=>'$'+Math.round(v/1000)+'K', font:{size:10}, color:'#5a5a70', maxTicksLimit:5 }, grid:{ color:'rgba(255,255,255,0.04)' }, border:{ display:false } }
+      }
+    }
+  });
+}
+
+// ── UPDATE UI ──
+function updateUI(price, change24h, ma200, rsi, macdBullish, fearGreed, fearGreedLabel, prices7d) {
+  const pct = ((price - ma200) / ma200 * 100).toFixed(1);
+  const sig = computeSignal(price, ma200, rsi, macdBullish, fearGreed);
+  const ATH = 126198;
+  const athDrop = ((price - ATH) / ATH * 100).toFixed(1);
+
+  // Price
+  $('mPrice').textContent = fmtPrice(price);
+  $('mChange').textContent = (change24h >= 0 ? '+' : '') + parseFloat(change24h).toFixed(2) + '% hoy';
+  $('mChange').className = 's ' + (change24h >= 0 ? 'up' : 'dn');
+
+  // MA200
+  $('mMa').textContent = fmtPrice(ma200);
+  $('mMaRel').textContent = (pct >= 0 ? '+' : '') + pct + '% vs MM200';
+  $('mMaRel').className = 's ' + (pct >= 0 ? 'up' : 'dn');
+
+  // Fear/Greed
+  $('mFng').textContent = fearGreed;
+  $('mFngLabel').textContent = fearGreedLabel;
+
+  // ATH
+  $('mAth').textContent = athDrop + '%';
+
+  // Alert zone
+  const inZone = price >= 50000 && price <= 55000;
+  const az = $('alertZone');
+  if (inZone) {
+    az.className = 'alert-card on';
+    $('alertIcon').textContent = '🔔';
+    $('alertText').innerHTML = `⚡ <strong>ZONA ACTIVA $50K–$55K</strong><br>¡BTC está en tu zona objetivo! Precio: ${fmtPrice(price)}`;
+    if ($('alert1').checked) playAlertSound();
+  } else {
+    az.className = 'alert-card off';
+    $('alertIcon').textContent = '🔕';
+    $('alertText').innerHTML = `BTC fuera de zona objetivo $50K–$55K.<br>Precio actual: <strong>${fmtPrice(price)}</strong>`;
+  }
+
+  // Signal
+  const sigCls = sig.signal === 'COMPRAR' ? 'buy' : sig.signal === 'VENDER' ? 'sell' : 'wait';
+  $('signalBox').className = 'signal-box ' + sigCls;
+  $('sigVal').textContent = sig.signal;
+  $('sigSub').textContent = sig.reason;
+  $('confNum').textContent = sig.conf + '%';
+
+  // RSI
+  $('rsiVal').textContent = rsi.toFixed(1);
+  $('rsiVal').className = 'ind-val ' + (rsi < 45 ? 'up' : rsi > 65 ? 'dn' : 'warn');
+  $('rsiBar').style.width = rsi + '%';
+  $('rsiBar').style.background = rsi < 35 ? 'var(--green)' : rsi > 65 ? 'var(--red)' : 'var(--yellow)';
+  $('rsiSt').textContent = rsi < 30 ? 'Sobreventa extrema — zona histórica de compra' : rsi < 45 ? 'Sobrevendido — posible rebote' : rsi > 70 ? 'Sobrecompra extrema — zona de venta' : rsi > 60 ? 'Sobrecomprado — precaución' : 'Zona neutral';
+  $('rsiSt').className = 'ind-st ' + (rsi < 45 ? 'up' : rsi > 60 ? 'dn' : 'muted');
+
+  // MACD
+  $('macdVal').textContent = macdBullish ? 'Positivo' : 'Negativo';
+  $('macdVal').className = 'ind-val ' + (macdBullish ? 'up' : 'dn');
+  $('macdBar').style.width = (macdBullish ? 72 : 28) + '%';
+  $('macdBar').style.background = macdBullish ? 'var(--green)' : 'var(--red)';
+  $('macdSt').textContent = macdBullish ? 'Momentum alcista activo' : 'Momentum bajista activo';
+  $('macdSt').className = 'ind-st ' + (macdBullish ? 'up' : 'dn');
+
+  // MA indicator
+  $('maVal').textContent = (pct >= 0 ? '+' : '') + pct + '%';
+  $('maVal').className = 'ind-val ' + (pct >= 0 ? 'up' : 'dn');
+  $('maBar').style.width = Math.min(100, Math.max(0, 50 + parseFloat(pct) * 1.5)) + '%';
+  $('maBar').style.background = pct >= 0 ? 'var(--green)' : 'var(--red)';
+  $('maSt').textContent = pct >= 0 ? 'Sobre MM200 — tendencia alcista' : 'Bajo MM200 — zona de acumulación';
+  $('maSt').className = 'ind-st ' + (pct >= 0 ? 'up' : 'dn');
+
+  // Reasons
+  const reasons = [];
+  if (inZone) reasons.push({ icon:'⚡', text:'Precio en zona objetivo $50K–$55K', ok:true });
+  if (rsi < 35) reasons.push({ icon:'✅', text:`RSI ${rsi.toFixed(1)}: sobreventa — zona histórica de compra`, ok:true });
+  else if (rsi > 65) reasons.push({ icon:'❌', text:`RSI ${rsi.toFixed(1)}: sobrecompra — zona de riesgo`, ok:false });
+  else reasons.push({ icon:'➖', text:`RSI ${rsi.toFixed(1)}: zona neutral`, ok:null });
+  if (fearGreed < 20) reasons.push({ icon:'✅', text:`Miedo extremo (${fearGreed}/100) — históricamente zona de acumulación`, ok:true });
+  else if (fearGreed > 70) reasons.push({ icon:'❌', text:`Codicia (${fearGreed}/100) — mercado eufórico, precaución`, ok:false });
+  else reasons.push({ icon:'➖', text:`Sentimiento neutro (${fearGreed}/100)`, ok:null });
+  if (pct < -5) reasons.push({ icon:'✅', text:`Precio ${pct}% bajo MM200 — zona de compra histórica`, ok:true });
+  else if (pct > 20) reasons.push({ icon:'❌', text:`Precio ${pct}% sobre MM200 — sobreextendido`, ok:false });
+  else reasons.push({ icon:'➖', text:`Precio ${pct >= 0 ? '+' : ''}${pct}% vs MM200 — zona neutral`, ok:null });
+  reasons.push({ icon: macdBullish ? '✅' : '❌', text: macdBullish ? 'MACD positivo — momentum alcista activo' : 'MACD negativo — momentum bajista activo', ok: macdBullish });
+
+  $('reasonsList').innerHTML = reasons.map(r =>
+    `<div class="reason-row"><span style="flex-shrink:0">${r.icon}</span><span>${r.text}</span></div>`
+  ).join('');
+
+  // Chart
+  if (prices7d && prices7d.length === 7) initChart(prices7d, ma200);
+
+  // Log
+  addToLog(sig.signal, price, sig.reason);
+
+  // Time
+  const now = new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  $('updateTime').textContent = '⚡ Binance — ' + now;
+
+  // Live pill
+  $('livePill').className = 'live-pill on';
+  $('liveText').textContent = 'EN VIVO';
+}
+
+// ── LOAD ALL DATA ──
+async function loadAll() {
+  const btn = $('refreshBtn');
+  if (btn) { btn.textContent = '↻ Cargando...'; btn.disabled = true; }
+  hideError();
+
+  try {
+    // Fetch price, klines and fear/greed in parallel via Netlify function
+    const [priceRes, klinesRes, fngRes] = await Promise.all([
+      fetch('/netlify/functions/btc?type=price'),
+      fetch('/netlify/functions/btc?type=klines'),
+      fetch('/netlify/functions/btc?type=fng')
+    ]);
+
+    if (!priceRes.ok) throw new Error('Error al obtener precio: ' + priceRes.status);
+    if (!klinesRes.ok) throw new Error('Error al obtener historial: ' + klinesRes.status);
+
+    const priceData = await priceRes.json();
+    const klinesData = await klinesRes.json();
+    let fngData = { value: 50, label: 'Neutral' };
+    if (fngRes.ok) fngData = await fngRes.json();
+
+    const closes = klinesData.closes;
+    const prices7d = closes.slice(-7);
+    const ma200 = calcMA200(closes);
+    const rsi = calcRSI(closes);
+    const macd = calcMACD(closes);
+
+    updateUI(
+      priceData.price,
+      priceData.change24h,
+      ma200,
+      rsi,
+      macd.bullish,
+      fngData.value,
+      fngData.label,
+      prices7d
+    );
+
+    showToast('✅ Datos actualizados desde Binance');
+
+  } catch(e) {
+    showError('No se pudo conectar: ' + e.message);
+    showToast('❌ Error de conexión');
+    $('livePill').className = 'live-pill off';
+    $('liveText').textContent = 'Sin conexión';
+  } finally {
+    if (btn) { btn.textContent = '↻ Actualizar'; btn.disabled = false; }
+    $('loadingOverlay').classList.add('hidden');
+  }
+}
+
+// ── AUTO REFRESH cada 60s ──
+setInterval(loadAll, 60000);
+
+// ── LOG ──
+function addToLog(signal, price, reason) {
+  const log = $('alertLogList');
+  if (!log) return;
+  const now = new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'});
+  const tagCls = signal==='COMPRAR' ? 'tag-buy' : signal==='VENDER' ? 'tag-sell' : 'tag-wait';
+  const item = document.createElement('div');
+  item.className = 'log-item';
+  item.innerHTML = `<span class="log-time">${now}</span><span class="log-msg"><span class="log-tag ${tagCls}">${signal}</span>${fmtPrice(price)} — ${reason}</span>`;
+  if (log.children.length === 1 && log.children[0].querySelector('.log-time')?.textContent === '—') log.innerHTML = '';
+  log.insertBefore(item, log.firstChild);
+  if (log.children.length > 20) log.removeChild(log.lastChild);
+}
+
+// ── SOUND ──
+function playAlertSound() {
+  try {
+    const ac = new (window.AudioContext || window.webkitAudioContext)();
+    [523,659,784,1047].forEach((freq,i) => {
+      const osc = ac.createOscillator(), gain = ac.createGain();
+      osc.connect(gain); gain.connect(ac.destination);
+      osc.frequency.value = freq; osc.type = 'sine';
+      const s = ac.currentTime + i * 0.13;
+      gain.gain.setValueAtTime(0.3, s);
+      gain.gain.exponentialRampToValueAtTime(0.001, s+0.3);
+      osc.start(s); osc.stop(s+0.3);
+    });
+  } catch(e) {}
+}
+function testAlert() { playAlertSound(); showToast('🔊 Sonido de alerta'); }
+
+// ── SAVE / LOAD ALERTS ──
+function saveAlerts() {
+  try { localStorage.setItem('btcAlerts', JSON.stringify(['alert1','alert2','alert3','alert4'].reduce((o,id) => ({...o,[id]:$(id).checked}), {}))); } catch(e) {}
+  showToast('✓ Preferencias guardadas');
+}
+function loadAlerts() {
+  try { const s=JSON.parse(localStorage.getItem('btcAlerts')||'{}'); Object.entries(s).forEach(([id,v])=>{ const el=$(id); if(el) el.checked=v; }); } catch(e) {}
+}
+
+// ── INIT ──
+loadAlerts();
+loadAll();
+</script>
+</body>
+</html>
