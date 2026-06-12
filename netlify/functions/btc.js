@@ -1,15 +1,17 @@
-// Cache para klines y fng (cambian lento)
-let cache = {};
-const CACHE_MS = 300000; // 5 minutos para datos históricos
+const cache = {};
 
-async function fetchWithCache(key, fetchFn) {
+async function cached(key, ttlMs, fetchFn) {
   const now = Date.now();
-  if (cache[key] && (now - cache[key].time) < CACHE_MS) {
+  if (cache[key] && (now - cache[key].ts) < ttlMs) {
     return cache[key].data;
   }
   const data = await fetchFn();
-  cache[key] = { data, time: now };
+  cache[key] = { data, ts: now };
   return data;
+}
+
+async function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
 }
 
 export default async (request) => {
@@ -22,49 +24,56 @@ export default async (request) => {
   };
 
   try {
+
     if (type === "price") {
-      // Kraken da precio exacto con decimales, sin restricciones
-      const res = await fetch("https://api.kraken.com/0/public/Ticker?pair=XBTUSD");
-      if (!res.ok) throw new Error("Kraken error: " + res.status);
-      const d = await res.json();
-      const ticker = d.result.XXBTZUSD;
-      const price = parseFloat(ticker.c[0]);
-      const open = parseFloat(ticker.o);
-      const change24h = ((price - open) / open) * 100;
-      return new Response(JSON.stringify({
-        price: price,
-        change24h: parseFloat(change24h.toFixed(4)),
-      }), { headers });
+      const data = await cached("price", 10000, async () => {
+        const res = await fetch("https://api.kraken.com/0/public/Ticker?pair=XBTUSD");
+        if (!res.ok) throw new Error("Kraken HTTP " + res.status);
+        const d = await res.json();
+        if (d.error && d.error.length > 0) throw new Error("Kraken: " + d.error[0]);
+        const ticker = d.result.XXBTZUSD;
+        const price = parseFloat(ticker.c[0]);
+        const open = parseFloat(ticker.o);
+        const change24h = ((price - open) / open) * 100;
+        return { price, change24h: parseFloat(change24h.toFixed(4)) };
+      });
+      return new Response(JSON.stringify(data), { headers });
     }
 
     if (type === "klines") {
-      const data = await fetchWithCache("klines", async () => {
-        const res = await fetch(
-          "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=210&interval=daily",
-          { headers: { "Accept": "application/json" } }
-        );
-        if (!res.ok) throw new Error("CoinGecko klines: " + res.status);
-        const d = await res.json();
-        return { closes: d.prices.map(p => p[1]) };
+      const data = await cached("klines", 300000, async () => {
+        let lastErr;
+        for (let i = 0; i < 3; i++) {
+          try {
+            if (i > 0) await sleep(2000 * i);
+            const res = await fetch(
+              "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=210&interval=daily",
+              { headers: { "Accept": "application/json" } }
+            );
+            if (!res.ok) throw new Error("CoinGecko HTTP " + res.status);
+            const d = await res.json();
+            if (!d.prices || d.prices.length < 50) throw new Error("Datos insuficientes");
+            return { closes: d.prices.map(p => p[1]) };
+          } catch(e) {
+            lastErr = e;
+          }
+        }
+        throw lastErr;
       });
       return new Response(JSON.stringify(data), { headers });
     }
 
     if (type === "fng") {
-      const data = await fetchWithCache("fng", async () => {
+      const data = await cached("fng", 3600000, async () => {
         const res = await fetch("https://api.alternative.me/fng/?limit=1");
-        if (!res.ok) throw new Error("FNG: " + res.status);
+        if (!res.ok) throw new Error("FNG HTTP " + res.status);
         const d = await res.json();
-        return { value: parseInt(d.data[0].value), label: d.data[0].value_classification };
+        return {
+          value: parseInt(d.data[0].value),
+          label: d.data[0].value_classification,
+        };
       });
       return new Response(JSON.stringify(data), { headers });
     }
 
-    return new Response(JSON.stringify({ error: "tipo invalido" }), { status: 400, headers });
-
-  } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), { status: 500, headers });
-  }
-};
-
-export const config = { path: "/netlify/functions/btc" };
+    return new Response(JSON.stringify({ erro
