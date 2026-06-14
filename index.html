@@ -589,9 +589,9 @@ async function loadAll() {
   try {
     // Fetch price, klines and fear/greed in parallel via Netlify function
     const [priceRes, klinesRes, fngRes] = await Promise.all([
-      fetch('/netlify/functions/btc?type=price'),
-      fetch('/netlify/functions/btc?type=klines'),
-      fetch('/netlify/functions/btc?type=fng')
+      fetch('/.netlify/functions/btc?type=price'),
+      fetch('/.netlify/functions/btc?type=klines'),
+      fetch('/.netlify/functions/btc?type=fng')
     ]);
 
     if (!priceRes.ok) throw new Error('Error al obtener precio: ' + priceRes.status);
